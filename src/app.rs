@@ -188,14 +188,15 @@ impl Pomodoro {
     }
 }
 
+/// Fakes das portas, reutilizados pelos testes da aplicação e do presenter.
 #[cfg(test)]
-mod tests {
+pub mod testing {
     use super::*;
     use crate::domain::Durations;
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    type Log = Rc<RefCell<Vec<String>>>;
+    pub type Log = Rc<RefCell<Vec<String>>>;
 
     struct FakePlayer(Log);
     impl MusicPlayer for FakePlayer {
@@ -229,13 +230,19 @@ mod tests {
         }
     }
 
-    fn app(focus: i64) -> (Pomodoro, Log) {
+    pub fn app(focus: i64) -> (Pomodoro, Log) {
         let log: Log = Default::default();
         let settings = Settings { durations: Durations::new(focus, 1), pack: Pack::Minecraft };
         let p = Pomodoro::new(settings, Box::new(FakePlayer(log.clone())), Box::new(FakeNotifier(log.clone())), Box::new(FakeStore(log.clone())));
         log.borrow_mut().clear();
         (p, log)
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::testing::app;
+    use super::*;
 
     #[test]
     fn music_follows_phases() {

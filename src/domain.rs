@@ -111,11 +111,12 @@ pub struct Timer {
     left: u32,
     running: bool,
     completed: u32,
+    focused: u32,
 }
 
 impl Timer {
     pub fn new(durations: Durations) -> Timer {
-        Timer { durations, phase: Phase::Focus, left: durations.minutes(Phase::Focus) * 60, running: false, completed: 0 }
+        Timer { durations, phase: Phase::Focus, left: durations.minutes(Phase::Focus) * 60, running: false, completed: 0, focused: 0 }
     }
 
     pub fn phase(&self) -> Phase {
@@ -129,6 +130,10 @@ impl Timer {
     }
     pub fn completed(&self) -> u32 {
         self.completed
+    }
+    /// Segundos efetivamente focados (rodando em foco) nesta sessão.
+    pub fn focused_seconds(&self) -> u32 {
+        self.focused
     }
     pub fn durations(&self) -> Durations {
         self.durations
@@ -147,6 +152,9 @@ impl Timer {
     pub fn tick(&mut self) -> Option<Phase> {
         if !self.running {
             return None;
+        }
+        if self.phase == Phase::Focus {
+            self.focused += 1;
         }
         self.left = self.left.saturating_sub(1);
         if self.left > 0 {
@@ -168,7 +176,7 @@ impl Timer {
 
     /// Volta ao início do foco, parado, mantendo a contagem.
     pub fn reset(&mut self) {
-        *self = Timer { completed: self.completed, ..Timer::new(self.durations) };
+        *self = Timer { completed: self.completed, focused: self.focused, ..Timer::new(self.durations) };
     }
 
     /// Muda a duração de `p` em `delta` minutos; se `p` é a fase atual, o restante acompanha.
@@ -195,12 +203,14 @@ mod tests {
             assert_eq!(t.tick(), None);
         }
         assert_eq!(t.tick(), Some(Phase::Break));
-        assert_eq!((t.seconds_left(), t.completed()), (60, 1));
+        assert_eq!((t.seconds_left(), t.completed(), t.focused_seconds()), (60, 1, 60));
+        t.tick();
+        assert_eq!(t.focused_seconds(), 60, "descanso não conta como foco");
         assert_eq!(t.skip(), Phase::Focus);
         assert_eq!(t.completed(), 1, "skip não conta");
         t.reset();
         assert!(!t.is_running());
-        assert_eq!(t.completed(), 1, "reset mantém contagem");
+        assert_eq!((t.completed(), t.focused_seconds()), (1, 60), "reset mantém a sessão");
     }
 
     #[test]

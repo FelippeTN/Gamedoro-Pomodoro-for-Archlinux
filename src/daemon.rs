@@ -1,7 +1,7 @@
 //! Infraestrutura de execução: socket Unix de controle, eleição de líder entre as instâncias
 //! (uma waybar por monitor) e o loop de 1 s que só acorda quando há algo correndo.
 
-use crate::adapters::waybar;
+use crate::adapters::{clock, waybar};
 use crate::app::{Command, Pomodoro};
 use std::fs::{self, File};
 use std::io::{BufRead, BufReader, Write};
@@ -77,7 +77,7 @@ fn lead(listener: UnixListener, mut app: Pomodoro) -> ! {
     let mut watchers: Vec<UnixStream> = vec![];
     let mut next = Instant::now() + SEC;
     loop {
-        print_or_exit(&broadcast(&mut watchers, waybar::render(&app)));
+        print_or_exit(&broadcast(&mut watchers, waybar::render(&app, clock::seconds_of_day())));
         let ticking = app.needs_ticks();
         let msg = if ticking {
             match rx.recv_timeout(next.saturating_duration_since(Instant::now())) {
