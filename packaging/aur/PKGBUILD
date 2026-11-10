@@ -1,6 +1,6 @@
 # Maintainer: FelippeTN <felippenalim2004 at gmail dot com>
 pkgname=gamedoro
-pkgver=0.1.0
+pkgver=0.2.0
 pkgrel=1
 pkgdesc="Pomodoro ultraleve para Waybar com as trilhas de Minecraft, The Witcher 3 e The Last of Us"
 arch=('x86_64' 'aarch64')
@@ -10,6 +10,7 @@ depends=('gcc-libs' 'glibc' 'alsa-lib' 'pipewire' 'libnotify' 'yt-dlp' 'ffmpeg' 
 makedepends=('cargo')
 optdepends=(
   'rofi: menu de controle do clique direito'
+  'zenity: slider de volume para arrastar com o mouse'
   'xdg-utils: abrir a pasta das músicas pelo menu'
   'pipewire-alsa: saída de áudio pelo PipeWire'
   'ttf-jetbrains-mono-nerd: ícones e alinhamento do tooltip'
@@ -17,7 +18,7 @@ optdepends=(
 options=('!debug') # o Cargo já faz strip (profile.release)
 install=gamedoro.install
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('6f86f236b0902de566a2c1a228dfa84dff0f8599fb8c2edf6e888c840ac7f7c6')
+sha256sums=('SKIP') # rode `updpkgsums` depois de criar a tag v$pkgver no GitHub
 
 _srcdir="Gamedoro-Pomodoro-for-Archlinux-$pkgver"
 

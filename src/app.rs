@@ -17,7 +17,10 @@ pub enum Command {
     MusicPrevious,
     MusicCycle,
     MusicPack(Pack),
+    /// `vol +5` / `vol -5`: relativo.
     Volume(i64),
+    /// `vol 70` (sem sinal): absoluto, usado pelo slider.
+    VolumeTo(i64),
 }
 
 impl Command {
@@ -30,7 +33,8 @@ impl Command {
             (Some("reset"), None, _) => Command::Reset,
             (Some("focus"), n, None) => Command::Adjust(Phase::Focus, num(n)?),
             (Some("break"), n, None) => Command::Adjust(Phase::Break, num(n)?),
-            (Some("vol"), n, None) => Command::Volume(num(n)?),
+            (Some("vol"), Some(n), None) if n.starts_with(['+', '-']) => Command::Volume(num(Some(n))?),
+            (Some("vol"), n, None) => Command::VolumeTo(num(n)?),
             (Some("music"), Some("toggle"), None) => Command::MusicToggle,
             (Some("music"), Some("next"), None) => Command::MusicNext,
             (Some("music"), Some("prev"), None) => Command::MusicPrevious,
@@ -137,11 +141,16 @@ impl Pomodoro {
             }
             Command::MusicCycle => self.select_pack(self.pack.next()),
             Command::MusicPack(p) => self.select_pack(p),
-            Command::Volume(delta) => {
-                self.volume = self.volume.adjusted(delta);
-                self.player.set_volume(self.volume.percent());
-                self.store.save(&self.settings());
-            }
+            Command::Volume(delta) => self.apply_volume(self.volume.adjusted(delta)),
+            Command::VolumeTo(percent) => self.apply_volume(Volume::new(percent)),
+        }
+    }
+
+    fn apply_volume(&mut self, v: Volume) {
+        if v != self.volume {
+            self.volume = v;
+            self.player.set_volume(v.percent());
+            self.store.save(&self.settings());
         }
     }
 
@@ -291,6 +300,11 @@ mod tests {
         p.execute(Command::Volume(55));
         p.execute(Command::Volume(-30));
         assert_eq!(*log.borrow(), ["vol 100", "save 30", "vol 70", "save 30"], "volume limitado a 100 e salvo");
+        log.borrow_mut().clear();
+        p.execute(Command::VolumeTo(35));
+        p.execute(Command::VolumeTo(35)); // arrastar repete valores: não grava de novo
+        p.execute(Command::VolumeTo(150));
+        assert_eq!(*log.borrow(), ["vol 35", "save 30", "vol 100", "save 30"]);
     }
 
     #[test]
@@ -299,7 +313,9 @@ mod tests {
         assert_eq!(Command::parse("break -1"), Ok(Command::Adjust(Phase::Break, -1)));
         assert_eq!(Command::parse("music pack tlou"), Ok(Command::MusicPack(Pack::TheLastOfUs)));
         assert_eq!(Command::parse("vol -10"), Ok(Command::Volume(-10)));
-        for bad in ["", "focus", "focus abc", "toggle now", "music pack zelda", "rm -rf"] {
+        assert_eq!(Command::parse("vol +5"), Ok(Command::Volume(5)));
+        assert_eq!(Command::parse("vol 70"), Ok(Command::VolumeTo(70)));
+        for bad in ["", "focus", "focus abc", "toggle now", "music pack zelda", "rm -rf", "vol", "vol +x"] {
             assert!(Command::parse(bad).is_err(), "{bad}");
         }
     }

@@ -12,6 +12,7 @@ use std::process::{Command as Process, Stdio};
 use std::{env, fs};
 
 const OPEN_CACHE: &str = "open-cache";
+const VOLUME_SLIDER: &str = "volume-slider";
 const CLOSE: &str = "close";
 const ACCENT: &str = "#f38ba8";
 /// Cada segmento da barra de volume vale um passo das setas.
@@ -39,6 +40,7 @@ pub fn run() {
     if let Some(info) = action {
         match info.as_str() {
             OPEN_CACHE => return open_cache(), // abre o gerenciador de arquivos e fecha o menu
+            VOLUME_SLIDER => return spawn_detached(env::current_exe().ok(), &[VOLUME_SLIDER]), // fecha o menu
             cmd if Command::parse(cmd).is_ok() => {
                 if daemon::send(cmd).is_err() {
                     error = Some("o Gamedoro não está rodando: recarregue a waybar");
@@ -53,8 +55,14 @@ pub fn run() {
 fn open_cache() {
     let dir = cache_root();
     let _ = fs::create_dir_all(&dir);
-    // stdout/stderr nulos: o rofi espera o stdout do script fechar antes de continuar
-    let _ = Process::new("xdg-open").arg(&dir).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn();
+    spawn_detached(Some("xdg-open".into()), &[dir.as_os_str()]);
+}
+
+/// stdout/stderr nulos: o rofi espera o stdout do script fechar antes de fechar/redesenhar.
+fn spawn_detached<S: AsRef<std::ffi::OsStr>>(program: Option<std::path::PathBuf>, args: &[S]) {
+    if let Some(p) = program {
+        let _ = Process::new(p).args(args).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn();
+    }
 }
 
 fn section(title: &str, value: Option<String>) -> Row {
@@ -90,7 +98,7 @@ fn rows(s: &Settings) -> Vec<Row> {
         item("\u{f04ad}", "Próxima faixa", "music next"),
         item("\u{f04ae}", "Faixa anterior", "music prev"),
         item("\u{f024b}", "Abrir pasta das músicas", OPEN_CACHE),
-        section("VOLUME  ·  ← →", Some(format!("{}%", s.volume.percent()))),
+        section("VOLUME  ·  clique para arrastar  ·  ← →", Some(format!("{}%", s.volume.percent()))),
         volume(s.volume.percent()),
         section("TIMER", None),
         item("\u{f04ac}", "Pular fase", "skip"),
@@ -99,7 +107,7 @@ fn rows(s: &Settings) -> Vec<Row> {
     ]
 }
 
-/// Barra clicável: cada clique sobe 10% e, no máximo, volta ao mudo (nunca pula para o alto).
+/// Barra de volume: o clique abre o slider para arrastar com o mouse; ← → ajustam 5% aqui mesmo.
 fn volume(v: u32) -> Row {
     let icon = match v {
         0 => "\u{f075f}",      // mudo
@@ -113,7 +121,7 @@ fn volume(v: u32) -> Row {
         "━".repeat(filled),
         "━".repeat(VOL_BAR as usize - filled)
     );
-    Row::Item(icon, bar, if v >= 100 { "vol -100" } else { "vol +10" })
+    Row::Item(icon, bar, VOLUME_SLIDER)
 }
 
 fn render(s: &Settings, error: Option<&str>) -> String {
@@ -161,11 +169,11 @@ mod tests {
         assert_eq!(out.lines().filter(|l| !l.starts_with('\0')).count(), rows(&s).len());
         for row in rows(&s) {
             if let Row::Item(_, _, action) = row {
-                assert!([OPEN_CACHE, CLOSE].contains(&action) || Command::parse(action).is_ok(), "{action}");
+                assert!([OPEN_CACHE, CLOSE, VOLUME_SLIDER].contains(&action) || Command::parse(action).is_ok(), "{action}");
             }
         }
         assert!(render(&s, Some("erro")).contains("erro"));
-        assert!(matches!(volume(100), Row::Item(_, _, "vol -100")), "no máximo, o clique volta ao mudo");
-        assert!(matches!(volume(0), Row::Item("\u{f075f}", _, "vol +10")));
+        assert!(matches!(volume(100), Row::Item(_, _, VOLUME_SLIDER)), "clicar na barra abre o slider");
+        assert!(matches!(volume(0), Row::Item("\u{f075f}", _, VOLUME_SLIDER)));
     }
 }

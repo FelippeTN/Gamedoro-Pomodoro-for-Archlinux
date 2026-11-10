@@ -17,8 +17,9 @@ const USAGE: &str = "uso: gamedoro                      (daemon, iniciado pela w
      gamedoro toggle|skip|reset
      gamedoro focus ±N | break ±N     (minutos)
      gamedoro music toggle|next|prev|cycle|pack <minecraft|witcher3|tlou>
-     gamedoro vol ±N                  (porcento)
-     gamedoro rofi                    (menu de controle, script mode do rofi)";
+     gamedoro vol ±N | vol N          (volume relativo | absoluto, porcento)
+     gamedoro rofi                    (menu de controle, script mode do rofi)
+     gamedoro volume-slider           (slider de volume para arrastar com o mouse)";
 
 fn build() -> Pomodoro {
     let (cfg, store) = FileStore::open();
@@ -33,6 +34,10 @@ fn main() -> ExitCode {
     // o rofi chama `gamedoro rofi <texto do item>`: o item escolhido vem por ROFI_INFO, o texto é ignorado
     if std::env::args().nth(1).as_deref() == Some("rofi") {
         adapters::rofi::run();
+        return ExitCode::SUCCESS;
+    }
+    if line == "volume-slider" {
+        adapters::volume_slider::run();
         return ExitCode::SUCCESS;
     }
     if matches!(line.as_str(), "-h" | "--help" | "help") {

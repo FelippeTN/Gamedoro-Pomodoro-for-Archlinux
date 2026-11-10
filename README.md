@@ -22,7 +22,7 @@ O pacote instala o binário em `/usr/bin` e os arquivos da Waybar em `/usr/share
 ### 1. Dependências
 
 ```sh
-sudo pacman -S --needed rustup pkgconf alsa-lib yt-dlp ffmpeg libnotify pipewire pipewire-alsa rofi xdg-utils ttf-jetbrains-mono-nerd
+sudo pacman -S --needed rustup pkgconf alsa-lib yt-dlp ffmpeg libnotify pipewire pipewire-alsa rofi zenity xdg-utils ttf-jetbrains-mono-nerd
 rustup default stable        # só se você nunca configurou o Rust
 ```
 
@@ -32,6 +32,7 @@ rustup default stable        # só se você nunca configurou o Rust
 | `yt-dlp`, `ffmpeg` | baixar as trilhas uma vez e converter para Ogg Vorbis |
 | `libnotify` | notificação de troca de fase (`notify-send`) |
 | `pipewire` | `pw-play`, para o som de aviso |
+| `zenity` | slider de volume para arrastar com o mouse |
 | `rofi`, `xdg-utils` | menu de controle do clique direito e "abrir pasta das músicas" (o HyDE já traz o rofi) |
 | `ttf-jetbrains-mono-nerd` | ícones e alinhamento do tooltip (o HyDE já traz) |
 
@@ -105,7 +106,7 @@ O clique direito abre um menu do rofi que **continua aberto** a cada clique: dá
 | **DESCANSO** · `5 min` | +1, −1 min |
 | **TRILHA** · `Minecraft` | Minecraft, The Witcher 3, The Last of Us (a ativa fica marcada e destacada) |
 | **MÚSICA** | liga/desliga, próxima, anterior, abrir a pasta das músicas |
-| **VOLUME** | barra de volume (salvo no config): clique sobe 10% (depois de 100% volta ao mudo), ← → ajustam 5% |
+| **VOLUME** | barra de volume (salva no config): **clique para abrir o slider e arrastar com o mouse**, que aplica o volume enquanto você arrasta (Cancelar desfaz). No menu, ← → ajustam 5% |
 | **TIMER** | pular fase, reiniciar, fechar |
 
 Para fechar, clique em **Fechar**, aperte `Esc`, clique fora do menu ou clique de novo com o botão direito no timer. O menu só existe enquanto está aberto, então o custo dele é zero no resto do tempo. O visual fica em `~/.config/waybar/menus/gamedoro.rasi`.
@@ -118,7 +119,8 @@ gamedoro focus +5          # ou -5; ajusta também o tempo restante se a fase fo
 gamedoro break -1
 gamedoro music toggle | next | prev | cycle
 gamedoro music pack minecraft | witcher3 | tlou
-gamedoro vol +10
+gamedoro vol +10           # relativo; `gamedoro vol 70` define o valor absoluto
+gamedoro volume-slider     # slider de volume para arrastar com o mouse
 ```
 
 Exemplo em `~/.config/hypr/keybindings.conf`: `bind = SUPER, P, exec, gamedoro toggle`
