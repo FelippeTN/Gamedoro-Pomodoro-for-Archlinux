@@ -10,23 +10,7 @@
     "on-click-middle": "~/.local/bin/gamedoro skip",
     "on-scroll-up": "~/.local/bin/gamedoro focus +1",
     "on-scroll-down": "~/.local/bin/gamedoro focus -1",
-    "menu": "on-click-right",
-    "menu-file": "~/.config/waybar/menus/gamedoro.xml",
-    "menu-actions": {
-      "music-toggle": "~/.local/bin/gamedoro music toggle",
-      "music-next": "~/.local/bin/gamedoro music next",
-      "music-prev": "~/.local/bin/gamedoro music prev",
-      "pack-minecraft": "~/.local/bin/gamedoro music pack minecraft",
-      "pack-witcher3": "~/.local/bin/gamedoro music pack witcher3",
-      "pack-tlou": "~/.local/bin/gamedoro music pack tlou",
-      "vol-up": "~/.local/bin/gamedoro vol +10",
-      "vol-down": "~/.local/bin/gamedoro vol -10",
-      "focus-up": "~/.local/bin/gamedoro focus +5",
-      "focus-down": "~/.local/bin/gamedoro focus -5",
-      "break-up": "~/.local/bin/gamedoro break +1",
-      "break-down": "~/.local/bin/gamedoro break -1",
-      "skip": "~/.local/bin/gamedoro skip",
-      "reset": "~/.local/bin/gamedoro reset"
-    }
+    // menu do rofi: continua aberto a cada clique; clicar de novo (ou Esc / clicar fora) fecha
+    "on-click-right": "pkill -x rofi || rofi -show gamedoro -modi \"gamedoro:$HOME/.local/bin/gamedoro rofi\" -theme ~/.config/waybar/menus/gamedoro.rasi -selected-row 1"
   }
 }

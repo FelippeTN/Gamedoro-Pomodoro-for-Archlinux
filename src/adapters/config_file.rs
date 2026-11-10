@@ -3,7 +3,8 @@
 use crate::adapters::local::DEFAULT_SOURCES;
 use crate::domain::{Durations, Pack, Phase, Settings};
 use crate::ports::SettingsStore;
-use std::path::PathBuf;
+use std::io::{self, ErrorKind};
+use std::path::{Path, PathBuf};
 use std::{env, fs};
 
 #[derive(Debug, PartialEq)]
@@ -21,8 +22,18 @@ impl ConfigFile {
             .join("gamedoro/config")
     }
 
+    /// Só leitura (menu do rofi): se o arquivo não abre, mostra os padrões.
     pub fn load() -> ConfigFile {
-        ConfigFile::parse(&fs::read_to_string(Self::path()).unwrap_or_default())
+        Self::read(&Self::path()).unwrap_or_else(|_| Self::parse(""))
+    }
+
+    /// Arquivo ausente = padrões. Outros erros (permissão, UTF-8 inválido) sobem para quem chamou.
+    fn read(path: &Path) -> io::Result<ConfigFile> {
+        match fs::read_to_string(path) {
+            Ok(text) => Ok(Self::parse(&text)),
+            Err(e) if e.kind() == ErrorKind::NotFound => Ok(Self::parse("")),
+            Err(e) => Err(e),
+        }
     }
 
     /// Linhas inválidas são ignoradas e o valor padrão é mantido.
@@ -63,20 +74,44 @@ impl ConfigFile {
 
 /// Persiste as preferências preservando as fontes que o usuário configurou.
 pub struct FileStore {
+    /// None = o arquivo existe mas não deu para ler: não salva, senão os padrões apagariam o que o usuário escreveu.
+    path: Option<PathBuf>,
     sources: [String; 3],
 }
 
 impl FileStore {
-    pub fn new(sources: [String; 3]) -> FileStore {
-        FileStore { sources }
+    /// Lê o config e devolve o store que o persiste.
+    pub fn open() -> (ConfigFile, FileStore) {
+        Self::open_at(ConfigFile::path())
+    }
+
+    fn open_at(path: PathBuf) -> (ConfigFile, FileStore) {
+        match ConfigFile::read(&path) {
+            Ok(cfg) => {
+                let store = FileStore { path: Some(path), sources: cfg.sources.clone() };
+                (cfg, store)
+            }
+            Err(e) => {
+                eprintln!("gamedoro: não li {}: {e}; usando padrões sem sobrescrever o arquivo", path.display());
+                let cfg = ConfigFile::parse("");
+                let store = FileStore { path: None, sources: cfg.sources.clone() };
+                (cfg, store)
+            }
+        }
     }
 }
 
 impl SettingsStore for FileStore {
     fn save(&self, settings: &Settings) {
-        let path = ConfigFile::path();
+        let Some(path) = &self.path else { return };
         let text = ConfigFile { settings: *settings, sources: self.sources.clone() }.serialize();
-        let res = path.parent().map_or(Ok(()), fs::create_dir_all).and_then(|_| fs::write(&path, text));
+        // temporário + rename: uma queda no meio da escrita nunca deixa o config cortado
+        let tmp = path.with_extension("tmp");
+        let res = path
+            .parent()
+            .map_or(Ok(()), fs::create_dir_all)
+            .and_then(|_| fs::write(&tmp, text))
+            .and_then(|_| fs::rename(&tmp, path));
         if let Err(e) = res {
             eprintln!("gamedoro: não salvei {}: {e}", path.display());
         }
@@ -97,5 +132,30 @@ mod tests {
         let bad = ConfigFile::parse("focus=lixo\nbreak=9999\npack=zelda\nsource.zelda=x\nsem_igual");
         assert_eq!(bad.settings, Settings { durations: Durations::new(25, Durations::MAX as i64), pack: Pack::Minecraft });
         assert_eq!(bad.sources, DEFAULT_SOURCES.map(String::from));
+    }
+
+    #[test]
+    fn unreadable_config_is_never_overwritten() {
+        let dir = env::temp_dir().join(format!("gamedoro-cfg-test-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("config");
+        let saved = Settings { durations: Durations::new(40, 5), pack: Pack::Minecraft };
+
+        // controle: arquivo ausente vira padrão e o save cria o arquivo
+        let (cfg, store) = FileStore::open_at(path.clone());
+        assert_eq!(cfg, ConfigFile::parse(""));
+        store.save(&saved);
+        assert_eq!(FileStore::open_at(path.clone()).0.settings, saved);
+        assert!(!path.with_extension("tmp").exists(), "temporário renomeado");
+
+        // UTF-8 inválido: lê padrões, mas o save não toca no arquivo do usuário
+        let original = b"focus=40\nsource.minecraft=minha\n\xff\n";
+        fs::write(&path, original).unwrap();
+        let (cfg, store) = FileStore::open_at(path.clone());
+        assert_eq!(cfg.settings, Settings::default());
+        store.save(&cfg.settings);
+        let after = fs::read(&path).unwrap();
+        fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(after, original);
     }
 }

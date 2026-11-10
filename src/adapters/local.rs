@@ -10,16 +10,24 @@ use std::process::{Child, Command, Stdio};
 use std::time::Duration;
 use std::env;
 
-/// Fonte de cada pack: qualquer URL ou busca aceita pelo yt-dlp (`ytsearchN:` = N primeiros resultados).
+/// Fonte de cada pack: qualquer URL ou busca aceita pelo yt-dlp. Padrão = álbuns oficiais
+/// (canal do artista / "Topic" do YouTube Music): faixas certas, na ordem certa, sempre as mesmas.
 pub const DEFAULT_SOURCES: [&str; 3] = [
-    "ytsearch15:C418 Minecraft Volume Alpha",
-    "ytsearch15:The Witcher 3 Wild Hunt original soundtrack",
-    "ytsearch15:Gustavo Santaolalla The Last of Us soundtrack",
+    // C418 – Minecraft – Volume Alpha (canal oficial do C418), 24 faixas
+    "https://www.youtube.com/playlist?list=PLHykAyQQdTart3T8wrDjEnAFEmbVstInA",
+    // Marcin Przybyłowicz – The Witcher 3: Wild Hunt (álbum oficial, Topic), 55 faixas
+    "https://www.youtube.com/playlist?list=OLAK5uy_mCEI_dk83gKOMlNZa8xX1YTT2imtILM2E",
+    // Gustavo Santaolalla – The Last of Us (álbum oficial), 30 faixas
+    "https://www.youtube.com/playlist?list=OLAK5uy_kyMghDo-VcuepOIbTbBETu6JT1iXvketY",
 ];
 const AUDIO_EXT: [&str; 3] = ["ogg", "mp3", "flac"];
-/// Ignora shorts e compilações de horas: só faixas de 1 a 15 min.
-const DURATION_FILTER: &str = "duration > 60 & duration < 900";
+/// Proteção para fontes trocadas pelo usuário: ignora shorts e compilações de horas.
+const DURATION_FILTER: &str = "duration > 30 & duration < 900";
 const DEFAULT_VOLUME: f32 = 0.6;
+/// Marcador de download concluído; sem ele, o próximo `load` retoma o que faltou.
+const DONE: &str = ".done";
+/// Registro do yt-dlp do que já foi baixado (permite retomar sem baixar de novo).
+const ARCHIVE: &str = ".archive";
 
 pub struct LocalPlayer {
     root: PathBuf,
@@ -38,11 +46,8 @@ pub struct LocalPlayer {
 
 impl LocalPlayer {
     pub fn new(sources: [String; 3]) -> LocalPlayer {
-        let cache = env::var_os("XDG_CACHE_HOME")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from(env::var_os("HOME").unwrap_or_default()).join(".cache"));
         LocalPlayer {
-            root: cache.join("gamedoro"),
+            root: cache_root(),
             sources,
             pack: None,
             tracks: vec![],
@@ -77,6 +82,8 @@ impl LocalPlayer {
             .args(["--quiet", "--no-warnings", "--no-progress", "--ignore-errors", "--no-overwrites"])
             .args(["-x", "--audio-format", "vorbis", "--audio-quality", "5"])
             .args(["--match-filter", DURATION_FILTER])
+            .arg("--download-archive")
+            .arg(dir.join(ARCHIVE))
             .arg("-o")
             .arg(dir.join("%(playlist_index)02d - %(title)s.%(ext)s"))
             .arg("--")
@@ -133,8 +140,10 @@ impl LocalPlayer {
 
 impl MusicPlayer for LocalPlayer {
     fn load(&mut self, pack: Pack) -> bool {
-        // mesmo pack já pronto ou baixando: nada a fazer; senão (ex.: yt-dlp instalado depois) tenta de novo
-        if self.pack == Some(pack) && (!self.tracks.is_empty() || self.download.is_some()) {
+        // mesmo pack completo ou baixando: nada a fazer; senão (yt-dlp instalado depois, download
+        // interrompido) tenta de novo
+        let complete = !self.tracks.is_empty() && self.dir(pack).join(DONE).exists();
+        if self.pack == Some(pack) && (complete || self.download.is_some()) {
             return true;
         }
         self.output = None;
@@ -147,10 +156,12 @@ impl MusicPlayer for LocalPlayer {
             let _ = old.wait();
         }
         self.rescan();
-        if self.tracks.is_empty() {
-            self.start_download(pack);
+        // shortcut: se o daemon morrer por sinal no meio do download, o yt-dlp segue como órfão e um
+        // segundo pode começar junto; o archive evita rebaixar o que já terminou. Upgrade: PR_SET_PDEATHSIG.
+        if self.tracks.is_empty() || !self.dir(pack).join(DONE).exists() {
+            self.start_download(pack); // retoma; as faixas que já existem tocam enquanto isso
         }
-        self.error.is_none()
+        self.error.is_none() || !self.tracks.is_empty()
     }
 
     fn play(&mut self) {
@@ -200,10 +211,15 @@ impl MusicPlayer for LocalPlayer {
 
     fn poll(&mut self) {
         if let Some(child) = &mut self.download {
-            let finished = !matches!(child.try_wait(), Ok(None));
+            let status = child.try_wait();
             self.rescan();
-            if finished {
+            if !matches!(status, Ok(None)) {
                 self.download = None;
+                // terminou sozinho (não por sinal): marca como completo, mesmo com faixas indisponíveis
+                let exited = matches!(status, Ok(Some(s)) if s.code().is_some());
+                if let (true, Some(p)) = (exited && !self.tracks.is_empty(), self.pack) {
+                    let _ = File::create(self.dir(p).join(DONE));
+                }
                 if self.tracks.is_empty() {
                     self.error = Some("download falhou: veja a fonte no config");
                 }
@@ -229,6 +245,14 @@ impl Drop for LocalPlayer {
             let _ = child.wait();
         }
     }
+}
+
+/// Pasta das músicas baixadas: `$XDG_CACHE_HOME/gamedoro` (padrão `~/.cache/gamedoro`).
+pub fn cache_root() -> PathBuf {
+    env::var_os("XDG_CACHE_HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(env::var_os("HOME").unwrap_or_default()).join(".cache"))
+        .join("gamedoro")
 }
 
 /// Faixas prontas, em ordem. Ignora os temporários do yt-dlp (`.part`, `.temp.ogg`).

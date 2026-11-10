@@ -4,7 +4,7 @@
 use crate::adapters::{clock, waybar};
 use crate::app::{Command, Pomodoro};
 use std::fs::{self, File};
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::PathBuf;
@@ -18,17 +18,24 @@ pub fn socket_path() -> PathBuf {
     runtime_dir().join("gamedoro.sock")
 }
 
+/// Sem fallback para /tmp: lá outro usuário poderia criar o socket/lock antes e sequestrar a waybar.
 fn runtime_dir() -> PathBuf {
-    env::var_os("XDG_RUNTIME_DIR").map(PathBuf::from).unwrap_or_else(env::temp_dir)
+    env::var_os("XDG_RUNTIME_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| fail("XDG_RUNTIME_DIR não definido (rode dentro da sessão gráfica)"))
 }
 
-/// Envia um comando ao líder (lado cliente).
+/// Envia um comando ao líder e espera ele terminar de aplicar (o líder fecha a conexão como ack).
 pub fn send(line: &str) -> std::io::Result<()> {
-    writeln!(UnixStream::connect(socket_path())?, "{line}")
+    let mut s = UnixStream::connect(socket_path())?;
+    s.set_read_timeout(Some(2 * SEC))?;
+    writeln!(s, "{line}")?;
+    s.read_to_end(&mut Vec::new()).map(|_| ())
 }
 
 enum Msg {
-    Cmd(String),
+    /// A conexão vai junto e é fechada depois de aplicar o comando: é o ack do `send`.
+    Cmd(String, UnixStream),
     Watch(UnixStream),
 }
 
@@ -67,7 +74,7 @@ fn lead(listener: UnixListener, mut app: Pomodoro) -> ! {
                 continue;
             }
             let line = line.trim();
-            let msg = if line == "watch" { Msg::Watch(s) } else { Msg::Cmd(line.to_string()) };
+            let msg = if line == "watch" { Msg::Watch(s) } else { Msg::Cmd(line.to_string(), s) };
             if tx.send(msg).is_err() {
                 break;
             }
@@ -91,7 +98,7 @@ fn lead(listener: UnixListener, mut app: Pomodoro) -> ! {
         match msg {
             Some(Msg::Watch(s)) => watchers.push(s),
             // o socket é fronteira de confiança: revalida tudo que chega
-            Some(Msg::Cmd(line)) => match Command::parse(&line) {
+            Some(Msg::Cmd(line, _ack)) => match Command::parse(&line) {
                 Ok(cmd) => {
                     app.execute(cmd);
                     if !ticking {

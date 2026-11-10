@@ -1,0 +1,38 @@
+/* Menu do Gamedoro (rofi). Copie para ~/.config/waybar/menus/gamedoro.rasi */
+configuration {
+    hover-select:     true;
+    me-select-entry:  "";
+    me-accept-entry:  "MousePrimary";   /* 1 clique aplica; o menu continua aberto */
+    click-to-exit:    true;
+}
+* {
+    bg:      #1e1e2e;
+    fg:      #cdd6f4;
+    muted:   #a6adc8;
+    accent:  #f38ba8;
+    sel:     #313244;
+    font:    "JetBrainsMono Nerd Font 10";
+    background-color: transparent;
+    text-color: @fg;
+}
+window {
+    location:  north west;
+    anchor:    north west;
+    x-offset:  10px;
+    y-offset:  10px;
+    width:     340px;
+    padding:   12px;
+    border:    1px;
+    border-color: #f38ba855;
+    border-radius: 12px;
+    background-color: @bg;
+}
+mainbox  { children: [ message, listview ]; spacing: 10px; }
+message  { padding: 4px 6px 8px 6px; border: 0 0 1px 0; border-color: #45475a; }
+textbox  { markup: true; }
+listview { lines: 23; fixed-height: false; scrollbar: false; spacing: 2px; cycle: false; }
+element  { padding: 4px 8px; border-radius: 8px; cursor: pointer; }
+element-text { cursor: inherit; text-color: inherit; }
+element selected.normal   { background-color: @sel; }
+element normal.active, element alternate.active { text-color: @accent; }
+element selected.active   { background-color: @sel; text-color: @accent; }

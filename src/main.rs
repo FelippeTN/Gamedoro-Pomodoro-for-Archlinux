@@ -7,7 +7,7 @@ mod daemon;
 mod domain;
 mod ports;
 
-use adapters::config_file::{ConfigFile, FileStore};
+use adapters::config_file::FileStore;
 use adapters::desktop::Desktop;
 use adapters::local::LocalPlayer;
 use app::{Command, Pomodoro};
@@ -17,22 +17,23 @@ const USAGE: &str = "uso: gamedoro                      (daemon, iniciado pela w
      gamedoro toggle|skip|reset
      gamedoro focus ±N | break ±N     (minutos)
      gamedoro music toggle|next|prev|cycle|pack <minecraft|witcher3|tlou>
-     gamedoro vol ±N                  (porcento)";
+     gamedoro vol ±N                  (porcento)
+     gamedoro rofi                    (menu de controle, script mode do rofi)";
 
 fn build() -> Pomodoro {
-    let cfg = ConfigFile::load();
-    Pomodoro::new(
-        cfg.settings,
-        Box::new(LocalPlayer::new(cfg.sources.clone())),
-        Box::new(Desktop),
-        Box::new(FileStore::new(cfg.sources)),
-    )
+    let (cfg, store) = FileStore::open();
+    Pomodoro::new(cfg.settings, Box::new(LocalPlayer::new(cfg.sources)), Box::new(Desktop), Box::new(store))
 }
 
 fn main() -> ExitCode {
     let line = std::env::args().skip(1).collect::<Vec<_>>().join(" ");
     if line.is_empty() {
         daemon::run(build);
+    }
+    // o rofi chama `gamedoro rofi <texto do item>`: o item escolhido vem por ROFI_INFO, o texto é ignorado
+    if std::env::args().nth(1).as_deref() == Some("rofi") {
+        adapters::rofi::run();
+        return ExitCode::SUCCESS;
     }
     if matches!(line.as_str(), "-h" | "--help" | "help") {
         println!("{USAGE}");
