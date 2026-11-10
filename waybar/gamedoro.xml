@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copie para ~/.config/waybar/menus/gamedoro.xml -->
+<interface>
+    <object class="GtkMenu" id="menu">
+        <child>
+            <object class="GtkMenuItem"><property name="label">󰎆  Trilha sonora</property>
+                <child type="submenu"><object class="GtkMenu">
+                <child><object class="GtkMenuItem" id="pack-minecraft"><property name="label">󰍳  Minecraft</property></object></child>
+                <child><object class="GtkMenuItem" id="pack-witcher3"><property name="label">󰞇  The Witcher 3</property></object></child>
+                <child><object class="GtkMenuItem" id="pack-tlou"><property name="label">󰚌  The Last of Us</property></object></child>
+                </object></child>
+            </object>
+        </child>
+        <child>
+            <object class="GtkMenuItem"><property name="label">  Música</property>
+                <child type="submenu"><object class="GtkMenu">
+                <child><object class="GtkMenuItem" id="music-toggle"><property name="label">󰐎  Ligar / desligar</property></object></child>
+                <child><object class="GtkMenuItem" id="music-next"><property name="label">󰒭  Próxima faixa</property></object></child>
+                <child><object class="GtkMenuItem" id="music-prev"><property name="label">󰒮  Faixa anterior</property></object></child>
+                <child><object class="GtkSeparatorMenuItem" /></child>
+                <child><object class="GtkMenuItem" id="vol-up"><property name="label">󰝝  Volume +10%</property></object></child>
+                <child><object class="GtkMenuItem" id="vol-down"><property name="label">󰝞  Volume −10%</property></object></child>
+                </object></child>
+            </object>
+        </child>
+        <child><object class="GtkSeparatorMenuItem" /></child>
+        <child>
+            <object class="GtkMenuItem"><property name="label">󰔛  Tempo de foco</property>
+                <child type="submenu"><object class="GtkMenu">
+                <child><object class="GtkMenuItem" id="focus-up"><property name="label">+5 min</property></object></child>
+                <child><object class="GtkMenuItem" id="focus-down"><property name="label">−5 min</property></object></child>
+                </object></child>
+            </object>
+        </child>
+        <child>
+            <object class="GtkMenuItem"><property name="label">  Tempo de descanso</property>
+                <child type="submenu"><object class="GtkMenu">
+                <child><object class="GtkMenuItem" id="break-up"><property name="label">+1 min</property></object></child>
+                <child><object class="GtkMenuItem" id="break-down"><property name="label">−1 min</property></object></child>
+                </object></child>
+            </object>
+        </child>
+        <child><object class="GtkSeparatorMenuItem" /></child>
+        <child><object class="GtkMenuItem" id="skip"><property name="label">󰒬  Pular fase</property></object></child>
+        <child><object class="GtkMenuItem" id="reset"><property name="label">󰑓  Reiniciar</property></object></child>
+    </object>
+</interface>

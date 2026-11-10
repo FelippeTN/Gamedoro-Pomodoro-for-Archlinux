@@ -1,0 +1,32 @@
+// Copie para ~/.config/waybar/modules/custom-gamedoro.jsonc
+// (o config.jsonc do HyDE inclui $XDG_CONFIG_HOME/waybar/modules/*json*).
+{
+  "custom/gamedoro": {
+    "exec": "~/.local/bin/gamedoro",
+    "return-type": "json",
+    "restart-interval": 5,
+    "tooltip": true,
+    "on-click": "~/.local/bin/gamedoro toggle",
+    "on-click-middle": "~/.local/bin/gamedoro skip",
+    "on-scroll-up": "~/.local/bin/gamedoro focus +1",
+    "on-scroll-down": "~/.local/bin/gamedoro focus -1",
+    "menu": "on-click-right",
+    "menu-file": "~/.config/waybar/menus/gamedoro.xml",
+    "menu-actions": {
+      "music-toggle": "~/.local/bin/gamedoro music toggle",
+      "music-next": "~/.local/bin/gamedoro music next",
+      "music-prev": "~/.local/bin/gamedoro music prev",
+      "pack-minecraft": "~/.local/bin/gamedoro music pack minecraft",
+      "pack-witcher3": "~/.local/bin/gamedoro music pack witcher3",
+      "pack-tlou": "~/.local/bin/gamedoro music pack tlou",
+      "vol-up": "~/.local/bin/gamedoro vol +10",
+      "vol-down": "~/.local/bin/gamedoro vol -10",
+      "focus-up": "~/.local/bin/gamedoro focus +5",
+      "focus-down": "~/.local/bin/gamedoro focus -5",
+      "break-up": "~/.local/bin/gamedoro break +1",
+      "break-down": "~/.local/bin/gamedoro break -1",
+      "skip": "~/.local/bin/gamedoro skip",
+      "reset": "~/.local/bin/gamedoro reset"
+    }
+  }
+}

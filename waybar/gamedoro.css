@@ -1,0 +1,15 @@
+/* Acrescente em ~/.config/waybar/user-style.css */
+#custom-gamedoro {
+  padding: 0 8px;
+  transition: color 300ms ease;
+}
+#custom-gamedoro.focus.running { color: #f38ba8; }
+#custom-gamedoro.break.running { color: #a6e3a1; }
+#custom-gamedoro.paused { opacity: 0.6; }
+#custom-gamedoro.alert {
+  font-weight: bold;
+  animation: gamedoro-blink 1s steps(2) infinite;
+}
+@keyframes gamedoro-blink {
+  to { color: #f9e2af; }
+}
