@@ -64,9 +64,12 @@ impl LocalPlayer {
         self.root.join(pack.id())
     }
 
+    /// Faixas novas entram embaralhadas no fim: a ordem já tocada não muda durante o download.
     fn rescan(&mut self) {
         if let Some(p) = self.pack {
-            self.tracks = scan(&self.dir(p));
+            let mut new: Vec<PathBuf> = scan(&self.dir(p)).into_iter().filter(|t| !self.tracks.contains(t)).collect();
+            shuffle(&mut new);
+            self.tracks.extend(new);
         }
     }
 
@@ -147,6 +150,7 @@ impl MusicPlayer for LocalPlayer {
         }
         self.output = None;
         self.pack = Some(pack);
+        self.tracks.clear(); // novo embaralhamento a cada escolha de pack
         self.index = 0;
         self.resume_at = Duration::ZERO;
         self.error = None;
@@ -267,6 +271,16 @@ fn scan(dir: &Path) -> Vec<PathBuf> {
     tracks
 }
 
+/// Fisher–Yates com a semente aleatória do próprio std (sem crate `rand`).
+fn shuffle<T>(v: &mut [T]) {
+    use std::collections::hash_map::RandomState;
+    use std::hash::{BuildHasher, Hasher};
+    for i in (1..v.len()).rev() {
+        let r = RandomState::new().build_hasher().finish();
+        v.swap(i, (r % (i as u64 + 1)) as usize);
+    }
+}
+
 fn is_track(p: &Path) -> bool {
     let ext_ok = p.extension().and_then(|e| e.to_str()).is_some_and(|e| AUDIO_EXT.contains(&e));
     let temp = p.file_stem().and_then(|s| s.to_str()).is_some_and(|s| s.ends_with(".temp"));
@@ -296,6 +310,16 @@ mod tests {
         let names: Vec<String> = scan(&dir).iter().map(|p| track_name(p)).collect();
         fs::remove_dir_all(&dir).unwrap();
         assert_eq!(names, ["A", "B"]);
+    }
+
+    #[test]
+    fn shuffle_permutes() {
+        let sorted: Vec<u32> = (0..50).collect();
+        let mut v = sorted.clone();
+        shuffle(&mut v);
+        assert_ne!(v, sorted, "50 faixas em ordem: chance de 1/50!");
+        v.sort();
+        assert_eq!(v, sorted);
     }
 
     #[test]

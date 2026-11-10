@@ -31,7 +31,7 @@ rustup default stable        # só se você nunca configurou o Rust
 | `rustup`, `pkgconf`, `alsa-lib` | compilar (o player de áudio usa a ALSA, que o PipeWire atende via `pipewire-alsa`) |
 | `yt-dlp`, `ffmpeg` | baixar as trilhas uma vez e converter para Ogg Vorbis |
 | `libnotify` | notificação de troca de fase (`notify-send`) |
-| `pipewire` | `pw-play`, para o som de aviso |
+| `pipewire` | servidor de áudio (música e som de aviso) |
 | `gtk-layer-shell`, `xdg-utils` | menu de controle do clique direito (a Waybar já depende dele) e "abrir pasta das músicas" |
 | `ttf-jetbrains-mono-nerd` | ícones e alinhamento do tooltip (o HyDE já traz) |
 
@@ -209,7 +209,7 @@ Medido nesta máquina (Arch, kernel 7.2, PipeWire, 2 monitores), pelo `/proc/PID
 | Binário | 1,7 MB (inclui o player embutido `rodio`) |
 | Menu (`gamedoro-menu`) | 350 KB; **~56 MB de RAM só enquanto está aberto** (janela GTK). Fechado, não existe: 0 RAM, 0 CPU |
 | Comando do cliente (`gamedoro toggle`) | ~1 ms |
-| Chime e notificação | `pw-play` + `notify-send`, uma vez por troca de fase |
+| Chime e notificação | arpejo sintetizado com `rodio` + `notify-send`, uma vez por troca de fase |
 | Download | `yt-dlp` + `ffmpeg`, **uma vez por pack**; ~212 MB em disco com os 3 packs |
 | Rede | só durante esse download |
 
@@ -224,7 +224,7 @@ src/
 ├── app.rs           Pomodoro: casos de uso (Command), regra "música só no foco"
 ├── adapters/
 │   ├── local.rs       MusicPlayer → yt-dlp (download único) + rodio (playback offline)
-│   ├── desktop.rs     Notifier → pw-play + notify-send
+│   ├── desktop.rs     Notifier → chime (rodio) + notify-send
 │   ├── config_file.rs SettingsStore → ~/.config/gamedoro/config
 │   ├── clock.rs       hora local (para o "termina às")
 │   └── waybar.rs      presenter: estado → JSON + tooltip Pango centralizado
