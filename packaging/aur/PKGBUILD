@@ -18,7 +18,7 @@ optdepends=(
 options=('!debug') # o Cargo já faz strip (profile.release)
 install=gamedoro.install
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('SKIP') # rode `updpkgsums` depois de criar a tag v$pkgver no GitHub
+sha256sums=('c55c3edcda1a19b04e5b9beb6ec37fc0db1e12d2e42a924d4579ba61bbfca278')
 
 _srcdir="Gamedoro-Pomodoro-for-Archlinux-$pkgver"
 
