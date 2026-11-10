@@ -6,10 +6,9 @@ pkgdesc="Pomodoro ultraleve para Waybar com as trilhas de Minecraft, The Witcher
 arch=('x86_64' 'aarch64')
 url="https://github.com/FelippeTN/Gamedoro-Pomodoro-for-Archlinux"
 license=('MIT')
-depends=('gcc-libs' 'glibc' 'gtk3' 'alsa-lib' 'pipewire' 'libnotify' 'yt-dlp' 'ffmpeg' 'waybar')
+depends=('gcc-libs' 'glibc' 'gtk3' 'gtk-layer-shell' 'alsa-lib' 'pipewire' 'libnotify' 'yt-dlp' 'ffmpeg' 'waybar')
 makedepends=('cargo')
 optdepends=(
-  'rofi: menu de controle do clique direito'
   'xdg-utils: abrir a pasta das músicas pelo menu'
   'pipewire-alsa: saída de áudio pelo PipeWire'
   'ttf-jetbrains-mono-nerd: ícones e alinhamento do tooltip'
@@ -31,20 +30,19 @@ build() {
   cd "$_srcdir"
   export RUSTUP_TOOLCHAIN=stable
   export CARGO_TARGET_DIR=target
-  cargo build --frozen --release --workspace
+  cargo build --frozen --release
 }
 
 check() {
   cd "$_srcdir"
   export RUSTUP_TOOLCHAIN=stable
-  cargo test --frozen --workspace
+  cargo test --frozen
 }
 
 package() {
   cd "$_srcdir"
-  install -Dm755 target/release/gamedoro "$pkgdir/usr/bin/gamedoro"
-  install -Dm755 target/release/libgamedoro_volume.so "$pkgdir/usr/lib/gamedoro/libgamedoro_volume.so"
-  install -Dm644 -t "$pkgdir/usr/share/gamedoro/" waybar/custom-gamedoro.jsonc waybar/gamedoro.rasi waybar/gamedoro.css
+  install -Dm755 -t "$pkgdir/usr/bin/" target/release/gamedoro target/release/gamedoro-menu
+  install -Dm644 -t "$pkgdir/usr/share/gamedoro/" waybar/custom-gamedoro.jsonc waybar/gamedoro.css
   install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
