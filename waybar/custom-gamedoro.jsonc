@@ -12,5 +12,9 @@
     "on-scroll-down": "gamedoro focus -1",
     // menu do rofi: continua aberto a cada clique; clicar de novo (ou Esc / clicar fora) fecha
     "on-click-right": "pkill -x rofi || rofi -show gamedoro -modi \"gamedoro:gamedoro rofi\" -theme ~/.config/waybar/menus/gamedoro.rasi -selected-row 1"
+  },
+  // slider de volume para arrastar com o mouse (módulo nativo, roda dentro da waybar)
+  "cffi/gamedoro-volume": {
+    "module_path": "/usr/lib/gamedoro/libgamedoro_volume.so"
   }
 }

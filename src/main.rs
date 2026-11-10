@@ -1,16 +1,11 @@
 //! Gamedoro: pomodoro ultraleve para Waybar com trilhas de jogos (YouTube → cache local).
 //! Composition root: liga o domínio/aplicação aos adapters concretos.
 
-mod adapters;
-mod app;
-mod daemon;
-mod domain;
-mod ports;
-
-use adapters::config_file::FileStore;
-use adapters::desktop::Desktop;
-use adapters::local::LocalPlayer;
-use app::{Command, Pomodoro};
+use gamedoro::adapters::config_file::FileStore;
+use gamedoro::adapters::desktop::Desktop;
+use gamedoro::adapters::local::LocalPlayer;
+use gamedoro::app::{Command, Pomodoro};
+use gamedoro::daemon;
 use std::process::ExitCode;
 
 const USAGE: &str = "uso: gamedoro                      (daemon, iniciado pela waybar)
@@ -18,8 +13,7 @@ const USAGE: &str = "uso: gamedoro                      (daemon, iniciado pela w
      gamedoro focus ±N | break ±N     (minutos)
      gamedoro music toggle|next|prev|cycle|pack <minecraft|witcher3|tlou>
      gamedoro vol ±N | vol N          (volume relativo | absoluto, porcento)
-     gamedoro rofi                    (menu de controle, script mode do rofi)
-     gamedoro volume-slider           (slider de volume para arrastar com o mouse)";
+     gamedoro-menu                    (menu de controle; o clique direito no timer abre)";
 
 fn build() -> Pomodoro {
     let (cfg, store) = FileStore::open();
@@ -30,15 +24,6 @@ fn main() -> ExitCode {
     let line = std::env::args().skip(1).collect::<Vec<_>>().join(" ");
     if line.is_empty() {
         daemon::run(build);
-    }
-    // o rofi chama `gamedoro rofi <texto do item>`: o item escolhido vem por ROFI_INFO, o texto é ignorado
-    if std::env::args().nth(1).as_deref() == Some("rofi") {
-        adapters::rofi::run();
-        return ExitCode::SUCCESS;
-    }
-    if line == "volume-slider" {
-        adapters::volume_slider::run();
-        return ExitCode::SUCCESS;
     }
     if matches!(line.as_str(), "-h" | "--help" | "help") {
         println!("{USAGE}");

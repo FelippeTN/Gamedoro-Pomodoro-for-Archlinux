@@ -1,16 +1,15 @@
 # Maintainer: FelippeTN <felippenalim2004 at gmail dot com>
 pkgname=gamedoro
-pkgver=0.2.0
+pkgver=0.3.0
 pkgrel=1
 pkgdesc="Pomodoro ultraleve para Waybar com as trilhas de Minecraft, The Witcher 3 e The Last of Us"
 arch=('x86_64' 'aarch64')
 url="https://github.com/FelippeTN/Gamedoro-Pomodoro-for-Archlinux"
 license=('MIT')
-depends=('gcc-libs' 'glibc' 'alsa-lib' 'pipewire' 'libnotify' 'yt-dlp' 'ffmpeg' 'waybar')
+depends=('gcc-libs' 'glibc' 'gtk3' 'alsa-lib' 'pipewire' 'libnotify' 'yt-dlp' 'ffmpeg' 'waybar')
 makedepends=('cargo')
 optdepends=(
   'rofi: menu de controle do clique direito'
-  'zenity: slider de volume para arrastar com o mouse'
   'xdg-utils: abrir a pasta das músicas pelo menu'
   'pipewire-alsa: saída de áudio pelo PipeWire'
   'ttf-jetbrains-mono-nerd: ícones e alinhamento do tooltip'
@@ -18,7 +17,7 @@ optdepends=(
 options=('!debug') # o Cargo já faz strip (profile.release)
 install=gamedoro.install
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('c55c3edcda1a19b04e5b9beb6ec37fc0db1e12d2e42a924d4579ba61bbfca278')
+sha256sums=('SKIP') # rode `updpkgsums` depois de criar a tag v$pkgver no GitHub
 
 _srcdir="Gamedoro-Pomodoro-for-Archlinux-$pkgver"
 
@@ -32,18 +31,19 @@ build() {
   cd "$_srcdir"
   export RUSTUP_TOOLCHAIN=stable
   export CARGO_TARGET_DIR=target
-  cargo build --frozen --release
+  cargo build --frozen --release --workspace
 }
 
 check() {
   cd "$_srcdir"
   export RUSTUP_TOOLCHAIN=stable
-  cargo test --frozen
+  cargo test --frozen --workspace
 }
 
 package() {
   cd "$_srcdir"
   install -Dm755 target/release/gamedoro "$pkgdir/usr/bin/gamedoro"
+  install -Dm755 target/release/libgamedoro_volume.so "$pkgdir/usr/lib/gamedoro/libgamedoro_volume.so"
   install -Dm644 -t "$pkgdir/usr/share/gamedoro/" waybar/custom-gamedoro.jsonc waybar/gamedoro.rasi waybar/gamedoro.css
   install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"

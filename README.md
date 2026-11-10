@@ -15,14 +15,14 @@ Pomodoro ultraleve para a **Waybar** no Arch Linux, com as trilhas sonoras ofici
 yay -S gamedoro          # ou: paru -S gamedoro
 ```
 
-O pacote instala o binário em `/usr/bin` e os arquivos da Waybar em `/usr/share/gamedoro/`. Depois, faça o **passo 3** abaixo copiando de `/usr/share/gamedoro/` em vez de `waybar/`. Quem mantém o pacote encontra o guia de publicação em [packaging/aur/README.md](packaging/aur/README.md).
+O pacote instala o binário em `/usr/bin`, o slider de volume em `/usr/lib/gamedoro/` e os arquivos da Waybar em `/usr/share/gamedoro/`. Depois, faça o **passo 3** abaixo copiando de `/usr/share/gamedoro/` em vez de `waybar/`. Quem mantém o pacote encontra o guia de publicação em [packaging/aur/README.md](packaging/aur/README.md).
 
 ## Instalação passo a passo (a partir do código)
 
 ### 1. Dependências
 
 ```sh
-sudo pacman -S --needed rustup pkgconf alsa-lib yt-dlp ffmpeg libnotify pipewire pipewire-alsa rofi zenity xdg-utils ttf-jetbrains-mono-nerd
+sudo pacman -S --needed rustup pkgconf alsa-lib yt-dlp ffmpeg libnotify pipewire pipewire-alsa rofi xdg-utils ttf-jetbrains-mono-nerd
 rustup default stable        # só se você nunca configurou o Rust
 ```
 
@@ -32,7 +32,6 @@ rustup default stable        # só se você nunca configurou o Rust
 | `yt-dlp`, `ffmpeg` | baixar as trilhas uma vez e converter para Ogg Vorbis |
 | `libnotify` | notificação de troca de fase (`notify-send`) |
 | `pipewire` | `pw-play`, para o som de aviso |
-| `zenity` | slider de volume para arrastar com o mouse |
 | `rofi`, `xdg-utils` | menu de controle do clique direito e "abrir pasta das músicas" (o HyDE já traz o rofi) |
 | `ttf-jetbrains-mono-nerd` | ícones e alinhamento do tooltip (o HyDE já traz) |
 
@@ -41,8 +40,9 @@ rustup default stable        # só se você nunca configurou o Rust
 ```sh
 git clone <este repositório> ~/Documents/Gamedoro-Pomodoro-for-Archlinux
 cd ~/Documents/Gamedoro-Pomodoro-for-Archlinux
-cargo build --release
+cargo build --release --workspace
 install -Dm755 target/release/gamedoro ~/.local/bin/gamedoro
+install -Dm755 target/release/libgamedoro_volume.so ~/.local/lib/gamedoro/libgamedoro_volume.so
 ```
 
 ### 3. Ligar na Waybar
@@ -51,25 +51,26 @@ install -Dm755 target/release/gamedoro ~/.local/bin/gamedoro
 
 ```sh
 mkdir -p ~/.config/waybar/modules ~/.config/waybar/menus
-cp waybar/custom-gamedoro.jsonc ~/.config/waybar/modules/
+sed "s|/usr/lib/gamedoro/|$HOME/.local/lib/gamedoro/|" waybar/custom-gamedoro.jsonc > ~/.config/waybar/modules/custom-gamedoro.jsonc
 cp waybar/gamedoro.rasi ~/.config/waybar/menus/
 grep -q custom-gamedoro ~/.config/waybar/user-style.css || cat waybar/gamedoro.css >> ~/.config/waybar/user-style.css
 ```
 
-Depois, adicione `"custom/gamedoro"` na lista `modules` de algum grupo. Faça isso **nos dois arquivos**: em `~/.config/waybar/config.jsonc` e no layout ativo em `~/.config/waybar/layouts/hyprdots/*.jsonc`, porque o HyDE regenera um a partir do outro. Exemplo:
+Depois, adicione `"custom/gamedoro"` (o timer) e `"cffi/gamedoro-volume"` (o slider de volume) na lista `modules` de algum grupo. Faça isso **nos dois arquivos**: em `~/.config/waybar/config.jsonc` e no layout ativo em `~/.config/waybar/layouts/hyprdots/*.jsonc`, porque o HyDE regenera um a partir do outro. Exemplo:
 
 ```jsonc
 "group/pill#left2": {
     "orientation": "inherit",
     "modules": [
         "custom/gamedoro",
+        "cffi/gamedoro-volume",
         "idle_inhibitor",
         "clock"
     ]
 }
 ```
 
-**Na Waybar sem HyDE**, cole o bloco `"custom/gamedoro": { … }` de `waybar/custom-gamedoro.jsonc` dentro do seu `config.jsonc`. Ponha `"custom/gamedoro"` em `modules-left`, `modules-center` ou `modules-right`, e acrescente `waybar/gamedoro.css` ao seu `style.css`.
+**Na Waybar sem HyDE**, cole os blocos `"custom/gamedoro"` e `"cffi/gamedoro-volume"` de `waybar/custom-gamedoro.jsonc` dentro do seu `config.jsonc` (ajuste o `module_path` se não instalou pelo pacote). Ponha os dois em `modules-left`, `modules-center` ou `modules-right`, e acrescente `waybar/gamedoro.css` ao seu `style.css`.
 
 ### 4. Recarregar
 
@@ -106,8 +107,12 @@ O clique direito abre um menu do rofi que **continua aberto** a cada clique: dá
 | **DESCANSO** · `5 min` | +1, −1 min |
 | **TRILHA** · `Minecraft` | Minecraft, The Witcher 3, The Last of Us (a ativa fica marcada e destacada) |
 | **MÚSICA** | liga/desliga, próxima, anterior, abrir a pasta das músicas |
-| **VOLUME** | barra de volume (salva no config): **clique para abrir o slider e arrastar com o mouse**, que aplica o volume enquanto você arrasta (Cancelar desfaz). No menu, ← → ajustam 5% |
+| **VOLUME** | indicador do volume atual (salvo no config); ← → ajustam 5%. Para arrastar com o mouse, use o slider da barra (abaixo) |
 | **TIMER** | pular fase, reiniciar, fechar |
+
+### Slider de volume na barra
+
+Ao lado do timer fica um slider (`cffi/gamedoro-volume`): **arraste com o mouse** e o volume da música muda na hora, sem abrir janela nenhuma. Ele roda dentro da própria Waybar, então não cria processo extra. Ao passar o mouse, ele relê o volume salvo, e assim fica em sincronia com as setas do menu.
 
 Para fechar, clique em **Fechar**, aperte `Esc`, clique fora do menu ou clique de novo com o botão direito no timer. O menu só existe enquanto está aberto, então o custo dele é zero no resto do tempo. O visual fica em `~/.config/waybar/menus/gamedoro.rasi`.
 
@@ -120,7 +125,6 @@ gamedoro break -1
 gamedoro music toggle | next | prev | cycle
 gamedoro music pack minecraft | witcher3 | tlou
 gamedoro vol +10           # relativo; `gamedoro vol 70` define o valor absoluto
-gamedoro volume-slider     # slider de volume para arrastar com o mouse
 ```
 
 Exemplo em `~/.config/hypr/keybindings.conf`: `bind = SUPER, P, exec, gamedoro toggle`
@@ -165,9 +169,10 @@ source.tlou=https://www.youtube.com/playlist?list=OLAK5uy_kyMghDo-VcuepOIbTbBETu
 ```sh
 cd ~/Documents/Gamedoro-Pomodoro-for-Archlinux
 git pull
-cargo build --release
+cargo build --release --workspace
 install -Dm755 target/release/gamedoro ~/.local/bin/gamedoro
-cp waybar/custom-gamedoro.jsonc ~/.config/waybar/modules/
+install -Dm755 target/release/libgamedoro_volume.so ~/.local/lib/gamedoro/libgamedoro_volume.so
+sed "s|/usr/lib/gamedoro/|$HOME/.local/lib/gamedoro/|" waybar/custom-gamedoro.jsonc > ~/.config/waybar/modules/custom-gamedoro.jsonc
 cp waybar/gamedoro.rasi ~/.config/waybar/menus/
 rm -f ~/.config/waybar/menus/gamedoro.xml    # menu GTK das versões antigas
 killall -SIGUSR2 waybar    # reinicia o timer
@@ -178,7 +183,8 @@ killall -SIGUSR2 waybar    # reinicia o timer
 ```sh
 rm ~/.local/bin/gamedoro ~/.config/waybar/modules/custom-gamedoro.jsonc ~/.config/waybar/menus/gamedoro.rasi
 rm -rf ~/.config/gamedoro ~/.cache/gamedoro
-# remova "custom/gamedoro" do config.jsonc e do layout, e o bloco #custom-gamedoro do user-style.css
+rm -rf ~/.local/lib/gamedoro
+# remova "custom/gamedoro" e "cffi/gamedoro-volume" do config.jsonc e do layout, e os blocos #custom-gamedoro/#gamedoro-volume do user-style.css
 killall -SIGUSR2 waybar
 ```
 
@@ -191,6 +197,7 @@ killall -SIGUSR2 waybar
 | `instale o yt-dlp` | `sudo pacman -S yt-dlp`, depois escolha o pack de novo no menu |
 | `download falhou` | Teste a fonte com `yt-dlp --flat-playlist "<fonte>"`. Atualize o yt-dlp (`sudo pacman -Syu yt-dlp`), porque o YouTube muda com frequência |
 | Poucas faixas num pack | Escolha o pack de novo no menu para retomar o download. Se a fonte for uma busca (`ytsearch`), troque por uma playlist |
+| O slider de volume não aparece | Confira o `module_path` de `"cffi/gamedoro-volume"` (pacote: `/usr/lib/gamedoro/libgamedoro_volume.so`; código: `~/.local/lib/gamedoro/…`, com o caminho absoluto) e se ele está no grupo do `config.jsonc` |
 | O clique direito não abre o menu | Instale o `rofi` e confira se `~/.config/waybar/menus/gamedoro.rasi` existe. Para testar no terminal: `rofi -show gamedoro -modi "gamedoro:gamedoro rofi"` |
 | `gamedoro: command not found` na waybar | O módulo chama `gamedoro` pelo PATH. Quem instalou a partir do código precisa ter `~/.local/bin` no PATH da sessão; se não tiver, troque `gamedoro` por `~/.local/bin/gamedoro` no módulo |
 | Sem som, mas a faixa aparece | Confira se o `pipewire-alsa` está instalado. O erro aparece nos logs da waybar: `journalctl --user -b \| grep gamedoro` |
@@ -211,6 +218,7 @@ Medido nesta máquina (Arch, kernel 7.2, PipeWire, 2 monitores), pelo `/proc/PID
 | Outros custos | |
 |---|---|
 | Binário | 1,7 MB (inclui o player embutido `rodio`) |
+| Slider de volume | módulo de 270 KB carregado **dentro** da Waybar (GTK já carregado): nenhum processo extra, 0 CPU parado |
 | Comando do cliente (`gamedoro toggle`) | ~1 ms |
 | Chime e notificação | `pw-play` + `notify-send`, uma vez por troca de fase |
 | Download | `yt-dlp` + `ffmpeg`, **uma vez por pack**; ~212 MB em disco com os 3 packs |
@@ -234,6 +242,7 @@ src/
 │   └── waybar.rs      presenter: estado → JSON + tooltip Pango centralizado
 ├── daemon.rs        socket Unix, eleição de líder (flock), loop de 1 s
 └── main.rs          composition root + CLI
+waybar-volume/       slider de volume (módulo CFFI da Waybar, cdylib): GTK3 via FFI, manda `vol N` pelo socket
 ```
 
 - **Uma waybar por monitor** roda um `exec` em cada monitor. A instância que pega o `flock` vira líder e as outras só repassam o estado dela. Se o líder morrer, um seguidor assume.

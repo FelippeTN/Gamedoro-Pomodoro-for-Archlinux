@@ -3,11 +3,11 @@ post_install() {
 ==> Gamedoro instalado. Para ativar na Waybar (uma vez, como seu usuário):
 
     mkdir -p ~/.config/waybar/modules ~/.config/waybar/menus
-    cp /usr/share/gamedoro/custom-gamedoro.jsonc ~/.config/waybar/modules/
+    cp /usr/share/gamedoro/custom-gamedoro.jsonc ~/.config/waybar/modules/   # timer + slider de volume
     cp /usr/share/gamedoro/gamedoro.rasi ~/.config/waybar/menus/
     cat /usr/share/gamedoro/gamedoro.css >> ~/.config/waybar/user-style.css   # ou style.css
 
-    Depois adicione "custom/gamedoro" num grupo/lista de módulos do config.jsonc
+    Depois adicione "custom/gamedoro" e "cffi/gamedoro-volume" num grupo do config.jsonc
     e rode: killall -SIGUSR2 waybar
 
     Guia completo: /usr/share/doc/gamedoro/README.md
