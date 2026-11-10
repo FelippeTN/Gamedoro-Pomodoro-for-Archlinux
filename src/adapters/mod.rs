@@ -3,5 +3,5 @@
 pub mod clock;
 pub mod config_file;
 pub mod desktop;
-pub mod spotify;
+pub mod local;
 pub mod waybar;

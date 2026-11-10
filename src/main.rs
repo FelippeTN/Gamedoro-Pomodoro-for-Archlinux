@@ -1,4 +1,4 @@
-//! Gamedoro: pomodoro ultraleve para Waybar com trilhas de jogos via spotifyd.
+//! Gamedoro: pomodoro ultraleve para Waybar com trilhas de jogos (YouTube → cache local).
 //! Composition root: liga o domínio/aplicação aos adapters concretos.
 
 mod adapters;
@@ -9,7 +9,7 @@ mod ports;
 
 use adapters::config_file::{ConfigFile, FileStore};
 use adapters::desktop::Desktop;
-use adapters::spotify::Spotifyd;
+use adapters::local::LocalPlayer;
 use app::{Command, Pomodoro};
 use std::process::ExitCode;
 
@@ -23,9 +23,9 @@ fn build() -> Pomodoro {
     let cfg = ConfigFile::load();
     Pomodoro::new(
         cfg.settings,
-        Box::new(Spotifyd::new(cfg.uris.clone())),
+        Box::new(LocalPlayer::new(cfg.sources.clone())),
         Box::new(Desktop),
-        Box::new(FileStore::new(cfg.uris)),
+        Box::new(FileStore::new(cfg.sources)),
     )
 }
 

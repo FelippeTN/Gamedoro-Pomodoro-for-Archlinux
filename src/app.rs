@@ -5,8 +5,6 @@ use crate::ports::{MusicPlayer, Notifier, SettingsStore};
 
 /// Segundos que a waybar fica em estado de alerta após trocar de fase.
 const ALERT_SECONDS: u32 = 10;
-/// A cada quantos segundos de música o título da faixa é relido.
-const TRACK_REFRESH_SECONDS: u32 = 15;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Command {
@@ -100,7 +98,7 @@ impl Pomodoro {
 
     /// Precisa de tick de 1 s? Se não, o daemon pode dormir sem wakeups.
     pub fn needs_ticks(&self) -> bool {
-        self.timer.is_running() || self.is_alerting()
+        self.timer.is_running() || self.is_alerting() || self.player.busy()
     }
 
     pub fn execute(&mut self, cmd: Command) {
@@ -142,10 +140,11 @@ impl Pomodoro {
 
     pub fn tick(&mut self) {
         self.alert_left = self.alert_left.saturating_sub(1);
+        self.player.poll();
         if let Some(phase) = self.timer.tick() {
             self.on_phase_started(phase);
-        } else if self.music_wanted() && self.timer.seconds_left().is_multiple_of(TRACK_REFRESH_SECONDS) {
-            self.track = self.player.now_playing();
+        } else {
+            self.track = self.player.now_playing(); // local e barato: sem subprocesso
         }
     }
 

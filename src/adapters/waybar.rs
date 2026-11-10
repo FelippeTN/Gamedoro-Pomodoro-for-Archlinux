@@ -7,7 +7,7 @@ use crate::domain::Phase;
 const ICON_FOCUS: &str = "\u{f051b}"; // nf-md-timer_outline
 const ICON_BREAK: &str = "\u{f0f4}"; // nf-fa-coffee
 const ICON_PAUSED: &str = "\u{f04c}"; // nf-fa-pause
-const ICON_MUSIC: &str = "\u{f1bc}"; // nf-fa-spotify
+const ICON_MUSIC: &str = "\u{f075a}"; // nf-md-music
 const ACCENT_FOCUS: &str = "#f38ba8"; // mesmas cores do gamedoro.css
 const ACCENT_BREAK: &str = "#a6e3a1";
 const WIDTH: usize = 36; // colunas (fonte mono) de TODAS as linhas: o tooltip fica com largura fixa
@@ -64,7 +64,7 @@ fn tooltip(app: &Pomodoro, now: u32, icon: &str, accent: &str) -> String {
     let after = format!("depois: {} de {} min", phase_name(next).to_lowercase(), d.minutes(next));
     let pack = app.pack().title();
     let music = match app.music() {
-        MusicStatus::Unavailable => "spotifyd off · veja o README".to_string(),
+        MusicStatus::Unavailable => "player indisponível".to_string(),
         MusicStatus::Off => "música desligada".to_string(),
         MusicStatus::Playing(track) => truncate(track, WIDTH),
     };

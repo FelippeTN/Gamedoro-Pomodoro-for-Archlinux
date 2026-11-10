@@ -6,6 +6,7 @@ description = "Pomodoro ultraleve para Waybar com trilhas de jogos via spotifyd"
 license = "MIT"
 
 [dependencies]
+rodio = { version = "0.23.0", default-features = false, features = ["playback", "vorbis", "mp3", "flac"] }
 
 [profile.release]
 opt-level = "z"
