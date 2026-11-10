@@ -1,0 +1,20 @@
+post_install() {
+  cat <<'MSG'
+==> Gamedoro instalado. Para ativar na Waybar (uma vez, como seu usuário):
+
+    mkdir -p ~/.config/waybar/modules ~/.config/waybar/menus
+    cp /usr/share/gamedoro/custom-gamedoro.jsonc ~/.config/waybar/modules/
+    cp /usr/share/gamedoro/gamedoro.rasi ~/.config/waybar/menus/
+    cat /usr/share/gamedoro/gamedoro.css >> ~/.config/waybar/user-style.css   # ou style.css
+
+    Depois adicione "custom/gamedoro" num grupo/lista de módulos do config.jsonc
+    e rode: killall -SIGUSR2 waybar
+
+    Guia completo: /usr/share/doc/gamedoro/README.md
+MSG
+}
+
+post_upgrade() {
+  echo "==> Gamedoro atualizado. Rode 'killall -SIGUSR2 waybar' para recarregar (reinicia o timer)."
+  echo "    Se o menu ou o módulo mudaram: cp /usr/share/gamedoro/{custom-gamedoro.jsonc,gamedoro.rasi} para ~/.config/waybar/{modules,menus}/"
+}

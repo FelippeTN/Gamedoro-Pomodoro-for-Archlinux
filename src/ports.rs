@@ -9,7 +9,8 @@ pub trait MusicPlayer {
     fn pause(&mut self);
     fn next(&mut self);
     fn previous(&mut self);
-    fn change_volume(&mut self, percent: i64);
+    /// Volume absoluto, 0–100 %.
+    fn set_volume(&mut self, percent: u32);
     /// Texto da faixa/estado para a UI, ou None se o player está indisponível.
     fn now_playing(&mut self) -> Option<String>;
     /// Trabalho periódico (fim de faixa, download concluído). Chamado a cada tick de 1 s.

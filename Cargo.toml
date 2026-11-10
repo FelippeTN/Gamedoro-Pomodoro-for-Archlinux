@@ -2,7 +2,7 @@
 name = "gamedoro"
 version = "0.1.0"
 edition = "2021"
-description = "Pomodoro ultraleve para Waybar com trilhas de jogos via spotifyd"
+description = "Pomodoro ultraleve para Waybar com as trilhas de Minecraft, The Witcher 3 e The Last of Us"
 license = "MIT"
 
 [dependencies]

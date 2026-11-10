@@ -9,7 +9,15 @@ Pomodoro ultraleve para a **Waybar** no Arch Linux, com as trilhas sonoras ofici
 
 ---
 
-## Instalação passo a passo
+## Instalação pelo AUR
+
+```sh
+yay -S gamedoro          # ou: paru -S gamedoro
+```
+
+O pacote instala o binário em `/usr/bin` e os arquivos da Waybar em `/usr/share/gamedoro/`. Depois, faça o **passo 3** abaixo copiando de `/usr/share/gamedoro/` em vez de `waybar/`. Quem mantém o pacote encontra o guia de publicação em [packaging/aur/README.md](packaging/aur/README.md).
+
+## Instalação passo a passo (a partir do código)
 
 ### 1. Dependências
 
@@ -96,7 +104,8 @@ O clique direito abre um menu do rofi que **continua aberto** a cada clique: dá
 | **FOCO** · `25 min` | +5, −5, +1, −1 min |
 | **DESCANSO** · `5 min` | +1, −1 min |
 | **TRILHA** · `Minecraft` | Minecraft, The Witcher 3, The Last of Us (a ativa fica marcada e destacada) |
-| **MÚSICA** | liga/desliga, próxima, anterior, volume ±10%, abrir a pasta das músicas |
+| **MÚSICA** | liga/desliga, próxima, anterior, abrir a pasta das músicas |
+| **VOLUME** | barra de volume (salvo no config): clique sobe 10% (depois de 100% volta ao mudo), ← → ajustam 5% |
 | **TIMER** | pular fase, reiniciar, fechar |
 
 Para fechar, clique em **Fechar**, aperte `Esc`, clique fora do menu ou clique de novo com o botão direito no timer. O menu só existe enquanto está aberto, então o custo dele é zero no resto do tempo. O visual fica em `~/.config/waybar/menus/gamedoro.rasi`.
@@ -180,7 +189,8 @@ killall -SIGUSR2 waybar
 | `instale o yt-dlp` | `sudo pacman -S yt-dlp`, depois escolha o pack de novo no menu |
 | `download falhou` | Teste a fonte com `yt-dlp --flat-playlist "<fonte>"`. Atualize o yt-dlp (`sudo pacman -Syu yt-dlp`), porque o YouTube muda com frequência |
 | Poucas faixas num pack | Escolha o pack de novo no menu para retomar o download. Se a fonte for uma busca (`ytsearch`), troque por uma playlist |
-| O clique direito não abre o menu | Instale o `rofi` e confira se `~/.config/waybar/menus/gamedoro.rasi` existe. Para testar no terminal: `rofi -show gamedoro -modi "gamedoro:$HOME/.local/bin/gamedoro rofi"` |
+| O clique direito não abre o menu | Instale o `rofi` e confira se `~/.config/waybar/menus/gamedoro.rasi` existe. Para testar no terminal: `rofi -show gamedoro -modi "gamedoro:gamedoro rofi"` |
+| `gamedoro: command not found` na waybar | O módulo chama `gamedoro` pelo PATH. Quem instalou a partir do código precisa ter `~/.local/bin` no PATH da sessão; se não tiver, troque `gamedoro` por `~/.local/bin/gamedoro` no módulo |
 | Sem som, mas a faixa aparece | Confira se o `pipewire-alsa` está instalado. O erro aparece nos logs da waybar: `journalctl --user -b \| grep gamedoro` |
 | `gamedoro: daemon não está rodando` | A waybar ainda não iniciou o módulo: rode `killall -SIGUSR2 waybar` |
 

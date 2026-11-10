@@ -4,6 +4,11 @@ configuration {
     me-select-entry:  "";
     me-accept-entry:  "MousePrimary";   /* 1 clique aplica; o menu continua aberto */
     click-to-exit:    true;
+    /* ← / → ajustam o volume (o menu não tem campo de busca, então as setas ficam livres) */
+    kb-move-char-back:    "Control+b";
+    kb-move-char-forward: "Control+f";
+    kb-custom-1:          "Left";
+    kb-custom-2:          "Right";
 }
 * {
     bg:      #1e1e2e;

@@ -1,7 +1,7 @@
 //! SettingsStore em `~/.config/gamedoro/config` (formato key=value, editável à mão).
 
 use crate::adapters::local::DEFAULT_SOURCES;
-use crate::domain::{Durations, Pack, Phase, Settings};
+use crate::domain::{Durations, Pack, Phase, Settings, Volume};
 use crate::ports::SettingsStore;
 use std::io::{self, ErrorKind};
 use std::path::{Path, PathBuf};
@@ -47,6 +47,7 @@ impl ConfigFile {
                 "focus" => s.durations = v.parse().map(|m| s.durations.with(Phase::Focus, m)).unwrap_or(s.durations),
                 "break" => s.durations = v.parse().map(|m| s.durations.with(Phase::Break, m)).unwrap_or(s.durations),
                 "pack" => s.pack = Pack::from_id(v).unwrap_or(s.pack),
+                "volume" => s.volume = v.parse().map(Volume::new).unwrap_or(s.volume),
                 _ => {
                     if let Some(p) = k.strip_prefix("source.").and_then(Pack::from_id) {
                         sources[p.index()] = v.to_string();
@@ -60,10 +61,11 @@ impl ConfigFile {
     pub fn serialize(&self) -> String {
         let d: Durations = self.settings.durations;
         let mut out = format!(
-            "focus={}\nbreak={}\npack={}\n",
+            "focus={}\nbreak={}\npack={}\nvolume={}\n",
             d.minutes(Phase::Focus),
             d.minutes(Phase::Break),
-            self.settings.pack.id()
+            self.settings.pack.id(),
+            self.settings.volume.percent()
         );
         for p in Pack::ALL {
             out += &format!("source.{}={}\n", p.id(), self.sources[p.index()]);
@@ -125,12 +127,12 @@ mod tests {
     #[test]
     fn roundtrip_and_bad_input() {
         let mut c = ConfigFile::parse("");
-        c.settings = Settings { durations: Durations::new(50, 10), pack: Pack::TheLastOfUs };
+        c.settings = Settings { durations: Durations::new(50, 10), pack: Pack::TheLastOfUs, volume: Volume::new(35) };
         c.sources[1] = "https://www.youtube.com/playlist?list=abc".into();
         assert_eq!(ConfigFile::parse(&c.serialize()), c);
 
-        let bad = ConfigFile::parse("focus=lixo\nbreak=9999\npack=zelda\nsource.zelda=x\nsem_igual");
-        assert_eq!(bad.settings, Settings { durations: Durations::new(25, Durations::MAX as i64), pack: Pack::Minecraft });
+        let bad = ConfigFile::parse("focus=lixo\nbreak=9999\npack=zelda\nvolume=500\nsource.zelda=x\nsem_igual");
+        assert_eq!(bad.settings, Settings { durations: Durations::new(25, Durations::MAX as i64), pack: Pack::Minecraft, volume: Volume::new(100) });
         assert_eq!(bad.sources, DEFAULT_SOURCES.map(String::from));
     }
 
@@ -139,7 +141,7 @@ mod tests {
         let dir = env::temp_dir().join(format!("gamedoro-cfg-test-{}", std::process::id()));
         fs::create_dir_all(&dir).unwrap();
         let path = dir.join("config");
-        let saved = Settings { durations: Durations::new(40, 5), pack: Pack::Minecraft };
+        let saved = Settings { durations: Durations::new(40, 5), pack: Pack::Minecraft, volume: Volume::default() };
 
         // controle: arquivo ausente vira padrão e o save cria o arquivo
         let (cfg, store) = FileStore::open_at(path.clone());

@@ -1,6 +1,6 @@
 //! Camada de aplicação: casos de uso (comandos) que orquestram o domínio e as portas.
 
-use crate::domain::{Pack, Phase, Settings, Timer};
+use crate::domain::{Pack, Phase, Settings, Timer, Volume};
 use crate::ports::{MusicPlayer, Notifier, SettingsStore};
 
 /// Segundos que a waybar fica em estado de alerta após trocar de fase.
@@ -52,6 +52,7 @@ pub enum MusicStatus<'a> {
 pub struct Pomodoro {
     timer: Timer,
     pack: Pack,
+    volume: Volume,
     music_on: bool,
     loaded: bool,
     track: Option<String>,
@@ -66,6 +67,7 @@ impl Pomodoro {
         let mut p = Pomodoro {
             timer: Timer::new(settings.durations),
             pack: settings.pack,
+            volume: settings.volume,
             music_on: true,
             loaded: false,
             track: None,
@@ -75,6 +77,7 @@ impl Pomodoro {
             store,
         };
         p.store.save(&p.settings()); // cria o arquivo na 1ª execução para o usuário editar
+        p.player.set_volume(p.volume.percent());
         p.track = p.player.now_playing();
         p
     }
@@ -134,7 +137,11 @@ impl Pomodoro {
             }
             Command::MusicCycle => self.select_pack(self.pack.next()),
             Command::MusicPack(p) => self.select_pack(p),
-            Command::Volume(delta) => self.player.change_volume(delta),
+            Command::Volume(delta) => {
+                self.volume = self.volume.adjusted(delta);
+                self.player.set_volume(self.volume.percent());
+                self.store.save(&self.settings());
+            }
         }
     }
 
@@ -149,7 +156,7 @@ impl Pomodoro {
     }
 
     fn settings(&self) -> Settings {
-        Settings { durations: self.timer.durations(), pack: self.pack }
+        Settings { durations: self.timer.durations(), pack: self.pack, volume: self.volume }
     }
 
     /// Regra de negócio da música: só toca em foco, com o timer rodando e a música ligada.
@@ -211,7 +218,9 @@ pub mod testing {
         }
         fn next(&mut self) {}
         fn previous(&mut self) {}
-        fn change_volume(&mut self, _: i64) {}
+        fn set_volume(&mut self, v: u32) {
+            self.0.borrow_mut().push(format!("vol {v}"));
+        }
         fn now_playing(&mut self) -> Option<String> {
             Some("C418 – Sweden".into())
         }
@@ -231,7 +240,7 @@ pub mod testing {
 
     pub fn app(focus: i64) -> (Pomodoro, Log) {
         let log: Log = Default::default();
-        let settings = Settings { durations: Durations::new(focus, 1), pack: Pack::Minecraft };
+        let settings = Settings { durations: Durations::new(focus, 1), pack: Pack::Minecraft, volume: Volume::default() };
         let p = Pomodoro::new(settings, Box::new(FakePlayer(log.clone())), Box::new(FakeNotifier(log.clone())), Box::new(FakeStore(log.clone())));
         log.borrow_mut().clear();
         (p, log)
@@ -278,6 +287,10 @@ mod tests {
         p.execute(Command::MusicPack(Pack::Witcher3));
         assert_eq!(*log.borrow(), ["save 30", "save 30", "load witcher3", "pause"], "parado: troca de pack não toca");
         assert_eq!(p.pack(), Pack::Witcher3);
+        log.borrow_mut().clear();
+        p.execute(Command::Volume(55));
+        p.execute(Command::Volume(-30));
+        assert_eq!(*log.borrow(), ["vol 100", "save 30", "vol 70", "save 30"], "volume limitado a 100 e salvo");
     }
 
     #[test]

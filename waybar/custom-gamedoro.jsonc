@@ -2,15 +2,15 @@
 // (o config.jsonc do HyDE inclui $XDG_CONFIG_HOME/waybar/modules/*json*).
 {
   "custom/gamedoro": {
-    "exec": "~/.local/bin/gamedoro",
+    "exec": "gamedoro",
     "return-type": "json",
     "restart-interval": 5,
     "tooltip": true,
-    "on-click": "~/.local/bin/gamedoro toggle",
-    "on-click-middle": "~/.local/bin/gamedoro skip",
-    "on-scroll-up": "~/.local/bin/gamedoro focus +1",
-    "on-scroll-down": "~/.local/bin/gamedoro focus -1",
+    "on-click": "gamedoro toggle",
+    "on-click-middle": "gamedoro skip",
+    "on-scroll-up": "gamedoro focus +1",
+    "on-scroll-down": "gamedoro focus -1",
     // menu do rofi: continua aberto a cada clique; clicar de novo (ou Esc / clicar fora) fecha
-    "on-click-right": "pkill -x rofi || rofi -show gamedoro -modi \"gamedoro:$HOME/.local/bin/gamedoro rofi\" -theme ~/.config/waybar/menus/gamedoro.rasi -selected-row 1"
+    "on-click-right": "pkill -x rofi || rofi -show gamedoro -modi \"gamedoro:gamedoro rofi\" -theme ~/.config/waybar/menus/gamedoro.rasi -selected-row 1"
   }
 }

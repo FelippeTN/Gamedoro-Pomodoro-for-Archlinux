@@ -96,11 +96,36 @@ impl Default for Durations {
     }
 }
 
+/// Value object: volume da música em porcento, sempre dentro de [0, 100].
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Volume(u32);
+
+impl Volume {
+    pub fn new(percent: i64) -> Volume {
+        Volume(percent.clamp(0, 100) as u32)
+    }
+
+    pub fn percent(self) -> u32 {
+        self.0
+    }
+
+    pub fn adjusted(self, delta: i64) -> Volume {
+        Volume::new(self.0 as i64 + delta)
+    }
+}
+
+impl Default for Volume {
+    fn default() -> Self {
+        Volume(60)
+    }
+}
+
 /// Preferências persistidas do usuário.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Settings {
     pub durations: Durations,
     pub pack: Pack,
+    pub volume: Volume,
 }
 
 /// Aggregate root: o ciclo foco/descanso. Avança por `tick()` de 1 s vindo de fora.

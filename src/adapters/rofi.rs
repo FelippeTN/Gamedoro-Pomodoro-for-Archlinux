@@ -14,6 +14,9 @@ use std::{env, fs};
 const OPEN_CACHE: &str = "open-cache";
 const CLOSE: &str = "close";
 const ACCENT: &str = "#f38ba8";
+/// Cada segmento da barra de volume vale um passo das setas.
+const VOL_STEP: u32 = 5;
+const VOL_BAR: u32 = 100 / VOL_STEP;
 
 enum Row {
     /// Cabeçalho de seção: não clicável.
@@ -26,8 +29,14 @@ enum Row {
 pub fn run() {
     let mut error = None;
     // ROFI_RETV=1: o usuário escolheu um item; ROFI_INFO traz a ação que nós mesmos pusemos.
-    if env::var("ROFI_RETV").as_deref() == Ok("1") {
-        let info = env::var("ROFI_INFO").unwrap_or_default();
+    // 10/11: kb-custom-1/2 (← / → no gamedoro.rasi) ajustam o volume.
+    let action = match env::var("ROFI_RETV").as_deref() {
+        Ok("1") => Some(env::var("ROFI_INFO").unwrap_or_default()),
+        Ok("10") => Some(format!("vol -{VOL_STEP}")),
+        Ok("11") => Some(format!("vol +{VOL_STEP}")),
+        _ => None,
+    };
+    if let Some(info) = action {
         match info.as_str() {
             OPEN_CACHE => return open_cache(), // abre o gerenciador de arquivos e fecha o menu
             cmd if Command::parse(cmd).is_ok() => {
@@ -80,14 +89,31 @@ fn rows(s: &Settings) -> Vec<Row> {
         item("\u{f040e}", "Liga / desliga", "music toggle"),
         item("\u{f04ad}", "Próxima faixa", "music next"),
         item("\u{f04ae}", "Faixa anterior", "music prev"),
-        item("\u{f075d}", "Volume +10%", "vol +10"),
-        item("\u{f075e}", "Volume −10%", "vol -10"),
         item("\u{f024b}", "Abrir pasta das músicas", OPEN_CACHE),
+        section("VOLUME  ·  ← →", Some(format!("{}%", s.volume.percent()))),
+        volume(s.volume.percent()),
         section("TIMER", None),
         item("\u{f04ac}", "Pular fase", "skip"),
         item("\u{f0453}", "Reiniciar", "reset"),
         item("\u{f0156}", "Fechar", CLOSE),
     ]
+}
+
+/// Barra clicável: cada clique sobe 10% e, no máximo, volta ao mudo (nunca pula para o alto).
+fn volume(v: u32) -> Row {
+    let icon = match v {
+        0 => "\u{f075f}",      // mudo
+        1..=33 => "\u{f057f}", // baixo
+        34..=66 => "\u{f0580}", // médio
+        _ => "\u{f057e}",      // alto
+    };
+    let filled = (v / VOL_STEP).min(VOL_BAR) as usize;
+    let bar = format!(
+        "<span foreground='{ACCENT}'>{}</span><span alpha='30%'>{}</span>",
+        "━".repeat(filled),
+        "━".repeat(VOL_BAR as usize - filled)
+    );
+    Row::Item(icon, bar, if v >= 100 { "vol -100" } else { "vol +10" })
 }
 
 fn render(s: &Settings, error: Option<&str>) -> String {
@@ -121,13 +147,13 @@ fn render(s: &Settings, error: Option<&str>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::Durations;
+    use crate::domain::{Durations, Volume};
 
     #[test]
     fn sections_show_values_and_actions_are_valid() {
-        let s = Settings { durations: Durations::new(30, 7), pack: Pack::Witcher3 };
+        let s = Settings { durations: Durations::new(30, 7), pack: Pack::Witcher3, volume: Volume::new(60) };
         let out = render(&s, None);
-        for needle in ["<b>FOCO</b>", "<b>30 min</b>", "<b>7 min</b>", "ciclo de 37 min  ·  The Witcher 3"] {
+        for needle in ["<b>FOCO</b>", "<b>30 min</b>", "<b>7 min</b>", "ciclo de 37 min  ·  The Witcher 3", "<b>60%</b>", &format!("'>{}</span><span alpha='30%'>{}<", "━".repeat(12), "━".repeat(8))] {
             assert!(out.contains(needle), "faltou {needle}");
         }
         assert!(out.contains("\0active\x1f10\n"), "Witcher: 2ª linha de pack, depois de 3 seções e 6 itens");
@@ -139,5 +165,7 @@ mod tests {
             }
         }
         assert!(render(&s, Some("erro")).contains("erro"));
+        assert!(matches!(volume(100), Row::Item(_, _, "vol -100")), "no máximo, o clique volta ao mudo");
+        assert!(matches!(volume(0), Row::Item("\u{f075f}", _, "vol +10")));
     }
 }

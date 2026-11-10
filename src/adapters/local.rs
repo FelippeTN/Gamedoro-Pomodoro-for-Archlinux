@@ -23,7 +23,6 @@ pub const DEFAULT_SOURCES: [&str; 3] = [
 const AUDIO_EXT: [&str; 3] = ["ogg", "mp3", "flac"];
 /// Proteção para fontes trocadas pelo usuário: ignora shorts e compilações de horas.
 const DURATION_FILTER: &str = "duration > 30 & duration < 900";
-const DEFAULT_VOLUME: f32 = 0.6;
 /// Marcador de download concluído; sem ele, o próximo `load` retoma o que faltou.
 const DONE: &str = ".done";
 /// Registro do yt-dlp do que já foi baixado (permite retomar sem baixar de novo).
@@ -53,7 +52,7 @@ impl LocalPlayer {
             tracks: vec![],
             index: 0,
             resume_at: Duration::ZERO,
-            volume: DEFAULT_VOLUME,
+            volume: 0.0, // o Pomodoro aplica o volume salvo logo ao criar
             wants_play: false,
             output: None,
             download: None,
@@ -186,8 +185,8 @@ impl MusicPlayer for LocalPlayer {
         self.skip(false);
     }
 
-    fn change_volume(&mut self, percent: i64) {
-        self.volume = (self.volume + percent as f32 / 100.0).clamp(0.0, 1.0);
+    fn set_volume(&mut self, percent: u32) {
+        self.volume = percent as f32 / 100.0;
         if let Some((_, player)) = &self.output {
             player.set_volume(self.volume);
         }
